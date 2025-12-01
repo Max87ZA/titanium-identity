@@ -157,7 +157,7 @@ public class KeychainItemProxy extends KrollProxy
 				promptInfo.setSubtitle(TitaniumIdentityModule.reasonSubtitle);
 				promptInfo.setDescription(TitaniumIdentityModule.reasonText);
 				promptInfo.setNegativeButtonText(TitaniumIdentityModule.negativeButtonText);
-				promptInfo.setConfirmationRequired(false);
+				promptInfo.setConfirmationRequired(TitaniumIdentityModule.confirmationRequired);
 				biometricPromptInfo = promptInfo.build();
 			}
 

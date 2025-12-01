@@ -143,16 +143,21 @@ public class FingerPrintHelper extends BiometricPrompt.AuthenticationCallback
 
 			mSelfCancelled = false;
 
-			final BiometricPrompt.PromptInfo.Builder promptInfo = new BiometricPrompt.PromptInfo.Builder();
-			promptInfo.setTitle(TitaniumIdentityModule.reason);
-			promptInfo.setDescription(TitaniumIdentityModule.reasonText);
-			promptInfo.setSubtitle(TitaniumIdentityModule.reasonSubtitle);
-			promptInfo.setNegativeButtonText(TitaniumIdentityModule.negativeButtonText);
-			promptInfo.setConfirmationRequired(false);
-			final Executor executor = Executors.newSingleThreadExecutor();
-			final BiometricPrompt prompt =
-				new BiometricPrompt((FragmentActivity) TiApplication.getAppCurrentActivity(), executor, this);
-			prompt.authenticate(promptInfo.build(), mCryptoObject);
+			if (mCryptoObject != null) {
+				final BiometricPrompt.PromptInfo.Builder promptInfo = new BiometricPrompt.PromptInfo.Builder();
+				promptInfo.setTitle(TitaniumIdentityModule.reason);
+				promptInfo.setDescription(TitaniumIdentityModule.reasonText);
+				promptInfo.setSubtitle(TitaniumIdentityModule.reasonSubtitle);
+				promptInfo.setNegativeButtonText(TitaniumIdentityModule.negativeButtonText);
+				promptInfo.setConfirmationRequired(TitaniumIdentityModule.confirmationRequired);
+
+				final Executor executor = Executors.newSingleThreadExecutor();
+				final BiometricPrompt prompt =
+					new BiometricPrompt((FragmentActivity) TiApplication.getAppCurrentActivity(), executor, this);
+				prompt.authenticate(promptInfo.build(), mCryptoObject);
+			} else if (canUseDeviceCredentials()) {
+				startDeviceCredentials();
+			}
 		} else if (canUseDeviceCredentials()) {
 			this.callback = callback;
 			this.krollObject = obj;
