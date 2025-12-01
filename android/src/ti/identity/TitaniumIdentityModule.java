@@ -29,7 +29,7 @@ public class TitaniumIdentityModule extends KrollModule
 	public static final String PROPERTY_REASON_SUBTITLE = "reasonSubtitle";
 	public static final String PROPERTY_REASON_TEXT = "reasonText";
 	public static final String PROPERTY_CANCEL_TITLE = "cancelTitle";
-
+	public static final String PROPERTY_AUTHENTIFICATION_TYPE = "authentificationType";
 	@Kroll.constant
 	public static final int SUCCESS = 0;
 	@Kroll.constant
@@ -92,6 +92,7 @@ public class TitaniumIdentityModule extends KrollModule
 
 	private static int authenticationPolicy = AUTHENTICATION_POLICY_BIOMETRICS;
 	public static String reason = "Biometric authentication";
+	public static String authentificationType = "biometrics";
 	public static String reasonSubtitle = "";
 	public static String reasonText = "";
 	public static String negativeButtonText = "Cancel";
@@ -140,6 +141,14 @@ public class TitaniumIdentityModule extends KrollModule
 	@Kroll.method
 	public void authenticate(HashMap params)
 	{
+		if (params.containsKey(PROPERTY_AUTHENTIFICATION_TYPE)) {
+			authentificationType = TiConvert.toString(params.get(PROPERTY_AUTHENTIFICATION_TYPE), authentificationType);
+		}
+		else
+		{
+			authentificationType = "passcode";
+		}
+
 		if (mfingerprintHelper == null) {
 			init();
 		}
@@ -150,10 +159,10 @@ public class TitaniumIdentityModule extends KrollModule
 			reason = TiConvert.toString(params.get(PROPERTY_REASON), reason);
 		}
 		if (params.containsKey(PROPERTY_REASON_TEXT)) {
-			reasonText = TiConvert.toString(params.get(PROPERTY_REASON_TEXT), "");
+			reasonText = TiConvert.toString(params.get(PROPERTY_REASON_TEXT), reasonText);
 		}
 		if (params.containsKey(PROPERTY_REASON_SUBTITLE)) {
-			reasonSubtitle = TiConvert.toString(params.get(PROPERTY_REASON_SUBTITLE), "");
+			reasonSubtitle = TiConvert.toString(params.get(PROPERTY_REASON_SUBTITLE), reasonSubtitle);
 		}
 		if (params.containsKey(PROPERTY_CANCEL_TITLE)) {
 			negativeButtonText = TiConvert.toString(params.get(PROPERTY_CANCEL_TITLE), negativeButtonText);
@@ -220,6 +229,28 @@ public class TitaniumIdentityModule extends KrollModule
 		}
 	}
 
+	@Kroll.method
+	public void passcodeAuthenticate(HashMap params)
+	{
+		if (params.containsKey(PROPERTY_REASON)) {
+			reason = TiConvert.toString(params.get(PROPERTY_REASON), reason);
+		}
+		if (params.containsKey(PROPERTY_REASON_TEXT)) {
+			reasonText = TiConvert.toString(params.get(PROPERTY_REASON_TEXT), reasonText);
+		}
+		if (params.containsKey(PROPERTY_REASON_SUBTITLE)) {
+			reasonSubtitle = TiConvert.toString(params.get(PROPERTY_REASON_SUBTITLE), reasonSubtitle);
+		}
+
+		if (mfingerprintHelper != null)
+		{
+			Object callback = params.get("callback");
+			authentificationType = "passcode";
+			mfingerprintHelper.startDeviceCredentials((KrollFunction) callback, getKrollObject());
+		}
+
+
+	}
 	@Override
 	public String getApiName()
 	{

@@ -15,6 +15,8 @@ import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyPermanentlyInvalidatedException;
 import android.security.keystore.KeyProperties;
 import android.util.Base64;
+
+import androidx.annotation.NonNull;
 import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.fragment.app.FragmentActivity;
@@ -146,7 +148,7 @@ public class FingerPrintHelper extends BiometricPrompt.AuthenticationCallback
 			promptInfo.setDescription(TitaniumIdentityModule.reasonText);
 			promptInfo.setSubtitle(TitaniumIdentityModule.reasonSubtitle);
 			promptInfo.setNegativeButtonText(TitaniumIdentityModule.negativeButtonText);
-
+			promptInfo.setConfirmationRequired(false);
 			final Executor executor = Executors.newSingleThreadExecutor();
 			final BiometricPrompt prompt =
 				new BiometricPrompt((FragmentActivity) TiApplication.getAppCurrentActivity(), executor, this);
@@ -154,16 +156,17 @@ public class FingerPrintHelper extends BiometricPrompt.AuthenticationCallback
 		} else if (canUseDeviceCredentials()) {
 			this.callback = callback;
 			this.krollObject = obj;
-			startDeviceCredentials();
+			startDeviceCredentials(callback, obj);
 		}
 	}
 
-	private void onError(String errMsg)
+	private void onError(String errMsg, int code)
 	{
 		if (callback != null && krollObject != null) {
 			KrollDict dict = new KrollDict();
 			dict.put("success", false);
 			dict.put("error", errMsg);
+			dict.put("code", code);
 			callback.callAsync(krollObject, dict);
 		}
 	}
@@ -183,34 +186,46 @@ public class FingerPrintHelper extends BiometricPrompt.AuthenticationCallback
 				callback.callAsync(krollObject, dict);
 			}
 		} catch (Exception e) {
-			onError("Failed to encrypt the data with the generated key.");
+			onError("Failed to encrypt the data with the generated key.", 98);
 		}
 	}
 
 	@Override
 	public void onAuthenticationError(int errMsgId, CharSequence errString)
 	{
-		onError(errString.toString());
+		onError(errString.toString(), errMsgId);
 	}
 
 	@Override
 	public void onAuthenticationFailed()
 	{
-		onError("Unable to recognize fingerprint");
+		onError("Unable to recognize fingerprint", 97);
 	}
 
 	@Override
 	public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result)
 	{
-		if (canUseDeviceBiometrics()) {
-			tryEncrypt();
-		} else {
-			if (callback != null && krollObject != null) {
-				KrollDict dict = new KrollDict();
-				dict.put("success", true);
-				callback.callAsync(krollObject, dict);
-			}
-		}
+        if(mModule.authentificationType == "biometrics")
+        {
+
+            if (canUseDeviceBiometrics()) {
+                tryEncrypt();
+            } else {
+                if (callback != null && krollObject != null) {
+                    KrollDict dict = new KrollDict();
+                    dict.put("success", true);
+                    callback.callAsync(krollObject, dict);
+                }
+            }
+        }
+        else
+        {
+            if (callback != null && krollObject != null) {
+                KrollDict dict = new KrollDict();
+                dict.put("success", true);
+                callback.callAsync(krollObject, dict);
+            }
+        }
 	}
 
 	/**
@@ -245,6 +260,7 @@ public class FingerPrintHelper extends BiometricPrompt.AuthenticationCallback
 		}
 	}
 
+	@SuppressWarnings("NewApi")
 	private void initCipher() throws Exception
 	{
 		try {
@@ -322,8 +338,10 @@ public class FingerPrintHelper extends BiometricPrompt.AuthenticationCallback
 		return response;
 	}
 
-	private void startDeviceCredentials()
+	public void startDeviceCredentials(KrollFunction callback, KrollObject obj)
 	{
+		this.callback = callback;
+		this.krollObject = obj;
 		KrollDict response = new KrollDict();
 		response = deviceCanAuthenticate(mModule.getAuthenticationPolicy());
 		if (response.getBoolean("canAuthenticate")) {
@@ -332,14 +350,17 @@ public class FingerPrintHelper extends BiometricPrompt.AuthenticationCallback
 				new BiometricPrompt((FragmentActivity) TiApplication.getAppCurrentActivity(), executor, this);
 			BiometricPrompt.PromptInfo promptInfo =
 				new BiometricPrompt.PromptInfo.Builder()
-					.setTitle("Enter your device credentials")
+					.setTitle(TitaniumIdentityModule.reason)
+					.setDescription(TitaniumIdentityModule.reasonText)
+					.setSubtitle(TitaniumIdentityModule.reasonSubtitle)
+					.setConfirmationRequired(false)
 					.setAllowedAuthenticators(BiometricManager.Authenticators.DEVICE_CREDENTIAL
 											  | BiometricManager.Authenticators.BIOMETRIC_STRONG
 											  | BiometricManager.Authenticators.BIOMETRIC_WEAK)
 					.build();
 			biometricPrompt.authenticate(promptInfo);
 		} else if (response.containsKey("error")) {
-			onError(response.getString("error"));
+			onError(response.getString("error"), 99);
 		}
 	}
 }
